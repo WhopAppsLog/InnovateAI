@@ -238,16 +238,6 @@ export default function InnovAI() {
     setIsThinking(true);
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
-      
-      if (!apiKey) {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: '⚙️ API Key not configured. To use InnovAI, please add your Anthropic API key to the environment variables.\n\nFor now, I\'m ready to chat! Ask me anything about development.'
-        }]);
-        setIsThinking(false);
-        return;
-      }
 
       const context = userData.name 
         ? `User Profile: Name: ${userData.name}, Username: @${userData.username}, Age: ${userData.age}, Interests: ${userData.interests}, Bio: ${userData.bio || 'N/A'}. Use this information to personalize your responses and relate to their interests. `
@@ -261,12 +251,10 @@ export default function InnovAI() {
 
       let systemPrompt = `${context}You are InnovAI, an elite AI assistant for developers. You respond FAST and CONCISE. You specialize in coding, development, and technical topics. Be direct, efficient, and helpful. When providing code, use proper syntax. You can search the web when needed. IMPORTANT: When you know the user's interests, try to relate your responses to those interests when relevant, and use their name occasionally to make the conversation more personal.`;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Send the request to our server-side endpoint that stores the secret key
+      const response = await fetch('/api/claude', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
@@ -275,20 +263,17 @@ export default function InnovAI() {
             ...messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: input }
           ],
-          tools: needsSearch ? [{
-            type: 'web_search_20250305',
-            name: 'web_search'
-          }] : undefined
-        })
+          tools: needsSearch ? [{ type: 'web_search_20250305', name: 'web_search' }] : undefined,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API Error (${response.status}): ${errorData.error?.message || response.statusText || 'Unknown error'}`);
+        throw new Error(`Server Error (${response.status}): ${errorData.error?.message || response.statusText || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      
+
       let fullResponse = '';
       if (data.error) {
         fullResponse = `API Error: ${data.error.message || 'Unknown error'}`;

@@ -22,7 +22,12 @@
     "autoprefixer": "10.4.19",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.3",
-    "eslint": "9.5.0",
+    "eslint": "8.50.0",
     "eslint-config-next": "14.2.0"
+  }
+  ,
+  "overrides": {
+    "rimraf": "^4.2.1",
+    "glob": "^9.3.0"
   }
 }
