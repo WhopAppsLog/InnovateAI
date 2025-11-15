@@ -282,6 +282,11 @@ export default function InnovAI() {
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`API Error (${response.status}): ${errorData.error?.message || response.statusText || 'Unknown error'}`);
+      }
+
       const data = await response.json();
       
       let fullResponse = '';
