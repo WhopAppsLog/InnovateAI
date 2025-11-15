@@ -238,6 +238,17 @@ export default function InnovAI() {
     setIsThinking(true);
 
     try {
+      const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+      
+      if (!apiKey) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: '⚙️ API Key not configured. To use InnovAI, please add your Anthropic API key to the environment variables.\n\nFor now, I\'m ready to chat! Ask me anything about development.'
+        }]);
+        setIsThinking(false);
+        return;
+      }
+
       const context = userData.name 
         ? `User Profile: Name: ${userData.name}, Username: @${userData.username}, Age: ${userData.age}, Interests: ${userData.interests}, Bio: ${userData.bio || 'N/A'}. Use this information to personalize your responses and relate to their interests. `
         : '';
@@ -254,6 +265,7 @@ export default function InnovAI() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': apiKey,
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
@@ -273,7 +285,9 @@ export default function InnovAI() {
       const data = await response.json();
       
       let fullResponse = '';
-      if (data.content) {
+      if (data.error) {
+        fullResponse = `API Error: ${data.error.message || 'Unknown error'}`;
+      } else if (data.content) {
         for (const block of data.content) {
           if (block.type === 'text') {
             fullResponse += block.text;
@@ -286,9 +300,10 @@ export default function InnovAI() {
         content: fullResponse || 'I encountered an error processing your request.'
       }]);
     } catch (error) {
+      console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Error: Unable to process request. Please try again.'
+        content: `Error: ${error.message || 'Unable to process request. Please try again.'}`
       }]);
     } finally {
       setIsThinking(false);
