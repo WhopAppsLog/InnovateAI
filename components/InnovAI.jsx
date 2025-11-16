@@ -44,6 +44,8 @@ export default function InnovAI() {
   const [allProjects, setAllProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef(null);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(null);
+  const [apiKeyErrorShown, setApiKeyErrorShown] = useState(false);
 
   useEffect(() => {
     const checkUserData = async () => {
@@ -80,6 +82,30 @@ export default function InnovAI() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/claude');
+        if (!mounted) return;
+        if (r.ok) {
+          const j = await r.json();
+          if (typeof j.configured !== 'undefined') {
+            setApiKeyConfigured(!!j.configured);
+          } else {
+            setApiKeyConfigured(true);
+          }
+        } else {
+          setApiKeyConfigured(null);
+        }
+      } catch (e) {
+        console.error('Error checking API key:', e);
+        setApiKeyConfigured(null);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const loadCommunityData = async () => {
     try {
@@ -231,6 +257,13 @@ export default function InnovAI() {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    if (apiKeyConfigured === false) {
+      if (!apiKeyErrorShown) {
+        setMessages(prev => [...prev, { role: 'assistant', content: '⚙️ API Key not configured. To use InnovAI, please add your Anthropic API key to the environment variables.' }]);
+        setApiKeyErrorShown(true);
+      }
+      return;
+    }
 
     const userMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
